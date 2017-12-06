@@ -30,38 +30,32 @@ const styles = StyleSheet.create({
 class Barrios extends React.Component {
   constructor(props) {
     super(props);
-    this.state = {
-      completed: false
-    };
   }
   static navigationOptions = {
     header: <SpotSearch placeholder="Busca el barrio acá..." />
   };
   updateTodosBarrios(id) {
-    const { Toggle, forSendsCopy, ToggleAll } = this.props;
-    let { completed } = this.state;
-    if (id === 99) {
-      this.setState({ completed: !completed });
-      return ToggleAll(!completed, forSendsCopy);
-    }
+    const { Toggle, forSendsCopy } = this.props;
     return Toggle(id, forSendsCopy);
   }
   render() {
     const { dataNeighborhoods } = this.props;
-    const { completed } = this.state;
     return (
       <FlatList
         style={{ backgroundColor: '#fff' }}
-        data={[
-          { name: 'TODOS LOS BARRIOS', id: 99, completed: completed },
-          ...dataNeighborhoods
-        ]}
+        data={dataNeighborhoods}
         renderItem={({ item }) => (
           <TouchableWithoutFeedback
             onPress={event => this.updateTodosBarrios(item.id)}
           >
             <View style={styles.itemList}>
-              <Text style={styles.textItem}>{item.name}</Text>
+              <Text
+                style={{
+                  color: item.completed ? '#000' : 'rgba(118, 181, 63,1)'
+                }}
+              >
+                {item.name}
+              </Text>
               <CheckBox
                 onValueChange={value => this.updateTodosBarrios(item.id)}
                 value={item.completed}
@@ -69,6 +63,7 @@ class Barrios extends React.Component {
             </View>
           </TouchableWithoutFeedback>
         )}
+        keyExtractor={(item, index) => index}
       />
     );
   }
@@ -87,9 +82,7 @@ const mapStateToProps = ({ maps }) => ({
   forSendsCopy: maps.dataNeighborhoods
 });
 const mapDispatchToProps = dispatch => ({
-  Toggle: (id, neighborhoods) =>
-    dispatch({ type: 'TOGGLE_NEIGHBORHOODS', id, neighborhoods }),
-  ToggleAll: (trueOrFalse, neighborhoods) =>
-    dispatch({ type: 'TOGGLE_ALL_NEIGHBORHOODS', trueOrFalse, neighborhoods })
+  Toggle: (id, barrios) =>
+    dispatch({ type: 'TOGGLE_NEIGHBORHOODS', id, barrios })
 });
 export default connect(mapStateToProps, mapDispatchToProps)(Barrios);

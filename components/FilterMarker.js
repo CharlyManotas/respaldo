@@ -1,33 +1,102 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import { connect } from 'react-redux';
+import { NavigationActions, HeaderBackButton } from 'react-navigation';
 import {
   StyleSheet,
   Image,
   View,
   Text,
-  TouchableWithoutFeedback
+  TouchableWithoutFeedback,
+  Switch
 } from 'react-native';
+import moment from 'moment';
 
 class FilterMarker extends React.Component {
-  static navigationOptions = {
-    title: 'Filtrar',
-    headerTintColor: '#fff',
-    headerStyle: {
-      backgroundColor: 'rgba(118, 181, 63,1)'
-    }
+  constructor(props) {
+    super(props);
+    this.filtroActive = this.filtroActive.bind(this);
+  }
+  static navigationOptions = ({
+    navigation,
+    screenProps,
+    navigationOptions
+  }) => {
+    let { state } = navigation;
+    return {
+      title: 'Filtrar',
+      headerTintColor: '#fff',
+      headerLeft: (
+        <HeaderBackButton
+          tintColor="#fff"
+          onPress={e => {
+            state.params.filtroActive();
+            navigation.goBack();
+          }}
+        />
+      ),
+      headerStyle: {
+        backgroundColor: 'rgba(118, 181, 63,1)'
+      }
+    };
   };
+  filtroActive() {
+    let {
+      dataNeighborhoods,
+      diasDeLaSemana,
+      ToogleFilter,
+      neighborhoods,
+      days
+    } = this.props;
+
+    let daysCount = days.length; // total de dias
+    let neighborhoodsCount = neighborhoods.length; // total de barrios
+    let colorBarriosActive =
+      dataNeighborhoods.length > 0 &&
+      dataNeighborhoods.length < neighborhoodsCount;
+    let colorDiasActive =
+      diasDeLaSemana.length > 0 && diasDeLaSemana.length < daysCount;
+    let completedNeighborhoods = neighborhoods
+      .filter(x => x.completed)
+      .map(r => r).length;
+    let completedDays = days.filter(x => x.completed).map(r => r).length;
+    let definitivoPorLasDudas =
+      neighborhoods.filter(x => x.completed).map(r => r).length > 0;
+    let definitivoPorLasDudasDays =
+      days.filter(x => x.completed).map(r => r).length > 0;
+    let result = {
+      daysCount,
+      neighborhoodsCount,
+      definitivoPorLasDudas,
+      definitivoPorLasDudasDays,
+      completedNeighborhoods,
+      completedDays
+    };
+    return ToogleFilter(colorBarriosActive, colorDiasActive, result);
+  }
+  componentDidMount() {
+    this.props.navigation.setParams({
+      filtroActive: this.filtroActive
+    });
+  }
   render() {
     const {
       barriosScreen,
       daysScreen,
-      filterActive,
       dataNeighborhoods,
       diasDeLaSemana,
       ToggleAll,
       neighborhoods,
-      DaysCompletedFalse
+      DaysCompletedFalse,
+      days,
+      switchActive,
+      ToggleSwicth,
+      ToogleFilter,
+      today
     } = this.props;
+    let yesOrnot =
+      neighborhoods.filter(x => !x.completed).map(r => r).length > 0;
+    let notOrYes = days.filter(x => !x.completed).map(r => r).length > 0;
     let colorBarriosActive = dataNeighborhoods.length > 0;
     let colorDiasActive = diasDeLaSemana.length > 0;
     return (
@@ -37,9 +106,10 @@ class FilterMarker extends React.Component {
             style={[
               styles.itemCaja,
               {
-                backgroundColor: colorBarriosActive
-                  ? '#000'
-                  : 'rgba(118, 181, 63,1)'
+                backgroundColor:
+                  colorBarriosActive && yesOrnot
+                    ? '#000'
+                    : 'rgba(118, 181, 63,1)'
               }
             ]}
           >
@@ -55,23 +125,28 @@ class FilterMarker extends React.Component {
             style={[
               styles.infoAll,
               {
-                borderColor: colorBarriosActive
-                  ? '#000'
-                  : 'rgba(118, 181, 63,1)'
+                borderColor:
+                  colorBarriosActive && yesOrnot
+                    ? '#000'
+                    : 'rgba(118, 181, 63,1)'
               }
             ]}
           >
             <TouchableWithoutFeedback onPress={e => barriosScreen()}>
               <View style={styles.lupita}>
-                {colorBarriosActive && (
-                  <Text style={{ width: '100%', textAlign: 'left' }}>
-                    {dataNeighborhoods.reduce(
-                      (acc, arre) => `${acc} ${arre.name},`,
-                      ''
-                    )}
-                  </Text>
-                )}
-                {!colorBarriosActive && [
+                {colorBarriosActive &&
+                  yesOrnot && (
+                    <Text
+                      ellipsizeMode="tail"
+                      numberOfLines={6}
+                      style={{ width: '100%', textAlign: 'left' }}
+                    >
+                      {dataNeighborhoods
+                        .reduce((acc, arre) => `${acc} ${arre.name},`, '')
+                        .slice(0, -1)}
+                    </Text>
+                  )}
+                {(!colorBarriosActive || !yesOrnot) && [
                   <Text key="1" style={styles.textTitle}>
                     Todos los barrios
                   </Text>,
@@ -91,14 +166,13 @@ class FilterMarker extends React.Component {
             style={[
               styles.itemCaja,
               {
-                backgroundColor: colorDiasActive
-                  ? '#000'
-                  : 'rgba(118, 181, 63,1)'
+                backgroundColor:
+                  colorDiasActive && notOrYes ? '#000' : 'rgba(118, 181, 63,1)'
               }
             ]}
           >
             <Text style={styles.itemText}>Días</Text>
-            <TouchableWithoutFeedback onPress={e => DaysCompletedFalse()}>
+            <TouchableWithoutFeedback onPress={e => DaysCompletedFalse(days)}>
               <Image
                 style={styles.iconBar}
                 source={require('../assets/icon-trash.png')}
@@ -110,13 +184,14 @@ class FilterMarker extends React.Component {
               styles.infoAll,
               {
                 minHeight: 95,
-                borderColor: colorDiasActive ? '#000' : 'rgba(118, 181, 63,1)'
+                borderColor:
+                  colorDiasActive && notOrYes ? '#000' : 'rgba(118, 181, 63,1)'
               }
             ]}
           >
             <TouchableWithoutFeedback onPress={e => daysScreen()}>
               <View style={styles.lupita}>
-                {!colorDiasActive && [
+                {(!colorDiasActive || !notOrYes) && [
                   <Text key="1" style={styles.textTitle}>
                     Todos los días
                   </Text>,
@@ -126,17 +201,25 @@ class FilterMarker extends React.Component {
                     key="2"
                   />
                 ]}
-                {colorDiasActive && (
-                  <Text style={{ width: '100%', textAlign: 'left' }}>
-                    {diasDeLaSemana.reduce(
-                      (acc, arre) => `${acc} ${arre.name},`,
-                      ''
-                    )}
-                  </Text>
-                )}
+                {colorDiasActive &&
+                  notOrYes && (
+                    <Text style={{ width: '100%', textAlign: 'left' }}>
+                      {diasDeLaSemana
+                        .filter(x => x.id !== '00')
+                        .reduce((acc, arre) => `${acc} ${arre.name},`, '')
+                        .slice(0, -1)}
+                    </Text>
+                  )}
               </View>
             </TouchableWithoutFeedback>
           </View>
+        </View>
+        <View style={styles.switchText}>
+          <Text style={styles.textTitle}>Mostrar abiertas ahora</Text>
+          <Switch
+            value={switchActive}
+            onValueChange={value => ToggleSwicth(value, days, today)}
+          />
         </View>
       </View>
     );
@@ -150,9 +233,16 @@ const styles = StyleSheet.create({
     width: '100%',
     alignItems: 'center'
   },
+  switchText: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: 30,
+    width: '85%'
+  },
   caja: {
     width: '85%',
-    marginTop: 50
+    marginTop: 35
   },
   lupita: {
     flex: 1,
@@ -205,10 +295,11 @@ const visibilityFilter = dataNeighborhoods => {
 
 const mapStateToProps = ({ maps, daysSelected }) => ({
   dataNeighborhoods: visibilityFilter(maps.dataNeighborhoods),
-  filterActive: maps.filterActive,
-  diasDeLaSemana: visibilityFilter(daysSelected),
-  days: daysSelected,
-  neighborhoods: maps.dataNeighborhoods
+  diasDeLaSemana: visibilityFilter(daysSelected.diadelasemana),
+  days: daysSelected.diadelasemana,
+  neighborhoods: maps.dataNeighborhoods,
+  switchActive: daysSelected.switchActive,
+  today: daysSelected.today
 });
 
 const mapDispatchToProps = dispatch => ({
@@ -220,7 +311,12 @@ const mapDispatchToProps = dispatch => ({
       trueOrFalse: false,
       neighborhoods
     }),
-  DaysCompletedFalse: () => dispatch({ type: 'ALL_DAYS_FALSE' })
+  DaysCompletedFalse: diadelasemana =>
+    dispatch({ type: 'ALL_DAYS_FALSE', diadelasemana }),
+  ToggleSwicth: (switchActive, diadelasemana, today) =>
+    dispatch({ type: 'SWITCH_ACTIVE', switchActive, diadelasemana, today }),
+  ToogleFilter: (barrios, dias, result) =>
+    dispatch({ type: 'TOGGLE_FILTER', barrios, dias, result })
 });
 
 export default connect(mapStateToProps, mapDispatchToProps)(FilterMarker);

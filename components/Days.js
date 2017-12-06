@@ -17,16 +17,25 @@ const Days = ({ dispatch, diasDeLaSemana, Toggle }) => {
       style={{ backgroundColor: '#fff' }}
       data={diasDeLaSemana}
       renderItem={({ item }) => (
-        <TouchableWithoutFeedback onPress={() => Toggle(item.id)}>
+        <TouchableWithoutFeedback
+          onPress={() => Toggle(item.id, diasDeLaSemana)}
+        >
           <View style={styles.itemList}>
-            <Text style={styles.textItem}>{item.name}</Text>
+            <Text
+              style={{
+                color: item.completed ? '#000' : 'rgba(118, 181, 63,1)'
+              }}
+            >
+              {item.name}
+            </Text>
             <CheckBox
-              onValueChange={e => Toggle(item.id)}
+              onValueChange={e => Toggle(item.id, diasDeLaSemana)}
               value={item.completed}
             />
           </View>
         </TouchableWithoutFeedback>
       )}
+      keyExtractor={(item, index) => index}
     />
   );
 };
@@ -53,9 +62,10 @@ Days.navigationOptions = {
   }
 };
 const mapStateToProps = ({ daysSelected }) => ({
-  diasDeLaSemana: daysSelected
+  diasDeLaSemana: daysSelected.diadelasemana
 });
 const mapDispatchToProps = dispatch => ({
-  Toggle: id => dispatch({ type: 'TOGGLE_DAY', id })
+  Toggle: (id, diadelasemana) =>
+    dispatch({ type: 'TOGGLE_DAY', id, diadelasemana })
 });
 export default connect(mapStateToProps, mapDispatchToProps)(Days);

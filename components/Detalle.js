@@ -26,10 +26,7 @@ class Detalle extends React.Component {
     }
   };
   daySet(day) {
-    var dia = day;
-    if (typeof day !== 'Number') {
-      dia = Number(day);
-    }
+    let otherName = day.split(',').map(x => Number(x));
     const semana = [
       'Domingo',
       'Lunes',
@@ -39,7 +36,8 @@ class Detalle extends React.Component {
       'Viernes',
       'Sábado'
     ];
-    return semana[day];
+    let final = otherName.reduce((acc, day) => `${acc} ${semana[day]}/`, '');
+    return final.slice(0, -1);
   }
   capitalize(string) {
     return `${string[0].toUpperCase()}${string.slice(1, string.length)}`;

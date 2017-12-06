@@ -7,7 +7,7 @@ import {
   NavigationActions
 } from 'react-navigation';
 import { BackHandler } from 'react-native';
-import MainScreen from '../components/MainScreen';
+import MainScreenMap from '../components/MainScreenMap';
 import BuscadorDeFerias from '../components/BuscadorDeFerias';
 import FilterMarker from '../components/FilterMarker';
 import InfoFeria from '../components/infoFeria';
@@ -16,7 +16,7 @@ import Barrios from '../components/Barrios';
 import Days from '../components/Days';
 
 export const AppNavigator = StackNavigator({
-  Main: { screen: MainScreen },
+  Main: { screen: MainScreenMap },
   Buscador: { screen: BuscadorDeFerias },
   Filtro: { screen: FilterMarker },
   Info: { screen: InfoFeria },

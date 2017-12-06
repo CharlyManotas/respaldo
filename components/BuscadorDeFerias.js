@@ -13,7 +13,6 @@ import {
 } from 'react-native';
 const propTypes = {
   dataMarkets: PropTypes.array.isRequired,
-  dataNeighborhoods: PropTypes.array.isRequired,
   feriaSelected: PropTypes.func.isRequired,
   text: PropTypes.string
 };
@@ -24,11 +23,7 @@ class BuscadorDeFerias extends React.Component {
   constructor(props) {
     super(props);
     this.ds = new ListView.DataSource({ rowHasChanged: (r1, r2) => r1 !== r2 });
-    this.state = {
-      barrios: this.props.dataNeighborhoods
-    };
     this.daySet = this.daySet.bind(this);
-    this.setBarrios = this.setBarrios.bind(this);
   }
   daySet(day) {
     var dia = day;
@@ -49,20 +44,11 @@ class BuscadorDeFerias extends React.Component {
   capitalize(string) {
     return `${string[0].toUpperCase()}${string.slice(1, string.length)}`;
   }
-  setBarrios(barrio) {
-    let { barrios } = this.state;
-    var final = this.capitalize(
-      barrios
-        .filter(x => barrio === x.id)
-        .map(r => r.name)[0]
-        .toLowerCase()
-    );
-    return final;
-  }
   render() {
     return (
       <ListView
         style={styles.container}
+        enableEmptySections={true}
         dataSource={this.ds.cloneWithRows(this.props.dataMarkets)}
         renderRow={rowData => (
           <TouchableWithoutFeedback
@@ -72,7 +58,7 @@ class BuscadorDeFerias extends React.Component {
               <View style={styles.dataOne}>
                 <Text style={styles.textStyle}>{rowData.streets}</Text>
                 <Text style={{ marginTop: 15, marginBottom: 2, color: '#000' }}>
-                  {this.setBarrios(rowData.neighborhood)}
+                  {this.capitalize(rowData.neighborhood.toLowerCase())}
                 </Text>
               </View>
               <View style={styles.dataTwo}>
@@ -121,15 +107,26 @@ const styles = StyleSheet.create({
   }
 });
 
-const visibilityFilter = (allDataMarkets, text) => {
+const visibilityFilter = (allDataMarkets, text, barrios) => {
+  let ultraNew = [...allDataMarkets].map(x => ({
+    ...x,
+    neighborhood: barrios
+      .filter(s => s.id === x.neighborhood)
+      .map(r => r.name)[0]
+  }));
   let ExpReg = new RegExp(text, 'gi');
-  let miData = allDataMarkets.filter(x => ExpReg.test(x.streets)).map(r => r);
+  let miData = [...ultraNew]
+    .filter(x => ExpReg.test(x.streets) || ExpReg.test(x.neighborhood))
+    .map(r => r);
   return miData;
 };
 
 const mapStateToProps = state => ({
-  dataMarkets: visibilityFilter(state.maps.dataMarkets, state.maps.text),
-  dataNeighborhoods: state.maps.dataNeighborhoods,
+  dataMarkets: visibilityFilter(
+    state.maps.dataMarkets,
+    state.maps.text,
+    state.maps.dataNeighborhoods
+  ),
   text: state.maps.text
 });
 

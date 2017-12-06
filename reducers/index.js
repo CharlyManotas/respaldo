@@ -1,10 +1,21 @@
+import moment from 'moment';
 import { combineReducers } from 'redux';
 import { NavigationActions } from 'react-navigation';
-
+import * as firebase from 'firebase';
 import { AppNavigator } from '../navigators';
 
 const firstAction = AppNavigator.router.getActionForPathAndParams('Main');
 const initialNavState = AppNavigator.router.getStateForAction(firstAction);
+
+const config = {
+  apiKey: 'AIzaSyCypnqUSXhYWIsdru5yZSKQQzOBxOLskAE',
+  authDomain: 'feriasmdeo-169822.firebaseapp.com',
+  databaseURL: 'https://feriasmdeo-169822.firebaseio.com',
+  projectId: 'feriasmdeo-169822',
+  storageBucket: 'feriasmdeo-169822.appspot.com',
+  messagingSenderId: '727727023663'
+};
+firebase.initializeApp(config);
 
 const initialState = {
   region: {
@@ -20,49 +31,132 @@ const initialState = {
   imageId: -1,
   polygons: [],
   text: '',
-  filterActive: false
+  filterActive: false,
+  database: firebase.database()
 };
-const diadelasemana = [
-  { name: 'Todos los días', completed: false, id: 0 },
-  { name: 'Domingo', completed: false, id: 1 },
-  { name: 'Lunes', completed: false, id: 2 },
-  { name: 'Martes', completed: false, id: 3 },
-  { name: 'Miercoles', completed: false, id: 4 },
-  { name: 'Jueves', completed: false, id: 5 },
-  { name: 'Viernes', completed: false, id: 6 },
-  { name: 'Sábado', completed: false, id: 7 }
-];
-function daysSelected(state = diadelasemana, action) {
+const initialStateWeeks = {
+  diadelasemana: [
+    { name: 'Todos los días', completed: false, id: '00' },
+    { name: 'Domingo', completed: false, id: '0' },
+    { name: 'Lunes', completed: false, id: '1' },
+    { name: 'Martes', completed: false, id: '2' },
+    { name: 'Miercoles', completed: false, id: '3' },
+    { name: 'Jueves', completed: false, id: '4' },
+    { name: 'Viernes', completed: false, id: '5' },
+    { name: 'Sábado', completed: false, id: '6' }
+  ],
+  switchActive: false,
+  today: moment().days()
+};
+function daysSelected(state = initialStateWeeks, action) {
+  let newState = { ...state };
   switch (action.type) {
     case 'TOGGLE_DAY':
-      if (action.id === 0) {
-        let trueOrFalse = state[0].completed;
-        return state.map(x => ({ ...x, completed: !trueOrFalse }));
-      }
-      return state.map(x => {
-        if (x.id !== action.id) {
-          return x;
-        }
-        return {
+      if (action.id === '00') {
+        let trueOrFalse = action.diadelasemana[0].completed;
+        newState['diadelasemana'] = action.diadelasemana.map(x => ({
           ...x,
-          completed: !x.completed
-        };
-      });
+          completed: !trueOrFalse
+        }));
+      } else {
+        newState['diadelasemana'] = action.diadelasemana.map(x => {
+          if (x.id !== action.id) {
+            return x;
+          }
+          return {
+            ...x,
+            completed: !x.completed
+          };
+        });
+        let maybe =
+          newState['diadelasemana'].filter(x => !x.completed).map(r => r)
+            .length > 0;
+        if (maybe) newState['diadelasemana'][0].completed = false;
+      }
+      break;
     case 'ALL_DAYS_FALSE':
-      return state.map(x => ({ ...x, completed: false }));
+      newState['switchActive'] = false;
+      newState['diadelasemana'] = action.diadelasemana.map(x => ({
+        ...x,
+        completed: false
+      }));
+      break;
+    case 'SWITCH_ACTIVE':
+      newState['switchActive'] = action.switchActive;
+      if (!action.switchActive) {
+        newState['diadelasemana'] = action.diadelasemana.map(x => ({
+          ...x,
+          completed: false
+        }));
+      } else {
+        newState['diadelasemana'] = action.diadelasemana.map(x => {
+          if (x.id === `${action.today}`) return { ...x, completed: true };
+          return { ...x, completed: false };
+        });
+      }
+      break;
     default:
-      return state;
+      break;
   }
+  return newState || state;
 }
-
+function activitiFilter(
+  state = {
+    filterActive: false,
+    dayActivityFilter: false,
+    neighborhoodsActivityFilter: false,
+    showPolygonosActivity: false
+  },
+  action
+) {
+  let newState = { ...state };
+  switch (action.type) {
+    case 'UN_KWON':
+      newState['showPolygonosActivity'] = false;
+      break;
+    case 'TOGGLE_FILTER':
+      let dayActivityFilterToggle =
+        action.result['daysCount'] === action.result['completedDays'];
+      let neighborhoodsActivityFilterToggle =
+        action.result['neighborhoodsCount'] ===
+        action.result['completedNeighborhoods'];
+      let lagorra =
+        dayActivityFilterToggle && neighborhoodsActivityFilterToggle;
+      if (
+        (action.barrios || action.dias) &&
+        (!dayActivityFilterToggle || !neighborhoodsActivityFilterToggle)
+      ) {
+        newState['filterActive'] = true;
+        newState['dayActivityFilter'] =
+          action.result['definitivoPorLasDudasDays'];
+        newState['neighborhoodsActivityFilter'] =
+          action.result['definitivoPorLasDudas'];
+        newState['showPolygonosActivity'] =
+          action.result['definitivoPorLasDudas'];
+      } else {
+        newState['filterActive'] = false;
+        newState['dayActivityFilter'] = false;
+        newState['neighborhoodsActivityFilter'] = false;
+        newState['showPolygonosActivity'] = false;
+      }
+      break;
+    default:
+      break;
+  }
+  return newState;
+}
 function maps(state = initialState, action) {
   let newState = { ...state };
   switch (action.type) {
     case 'SELECTED_LOCATION':
-    case 'MOVE_TO_LOCATION':
-      const { region } = action;
       newState['text'] = '';
-      newState['region'] = region;
+      newState['region'] = action.region;
+      newState['imageId'] = -1;
+      newState['selectedId'] = false;
+      break;
+    case 'MOVE_TO_LOCATION':
+      newState['text'] = '';
+      newState['region'] = action.region;
       break;
     case 'TEXT_UPDATE':
       newState['text'] = action.text;
@@ -74,6 +168,11 @@ function maps(state = initialState, action) {
       newState['imageId'] = action.id;
       newState['selectedId'] = action.result;
       newState['region'] = action.region;
+      newState['polygons'] = action.polygons;
+      break;
+    case 'TOGGLE_FILTER':
+      newState['selectedId'] = false;
+      newState['imageId'] = -1;
       break;
     case 'NEIGHBORHOODS_ALL':
       newState['dataNeighborhoods'] = action.neighborhoods;
@@ -89,9 +188,6 @@ function maps(state = initialState, action) {
       newState['selectedId'] = false;
       newState['imageId'] = -1;
       break;
-    case 'FILTER_ACTIVE_OR_NOT':
-      newState['filterActive'] = action.filterActive;
-      break;
     case 'TOGGLE_ALL_NEIGHBORHOODS':
       newState['dataNeighborhoods'] = action.neighborhoods.map(x => ({
         ...x,
@@ -99,15 +195,27 @@ function maps(state = initialState, action) {
       }));
       break;
     case 'TOGGLE_NEIGHBORHOODS':
-      newState['dataNeighborhoods'] = action.neighborhoods.map(x => {
-        if (x.id !== action.id) {
-          return x;
-        }
-        return {
+      if (action.id === 99) {
+        let trueOrFalse = action.barrios[0].completed;
+        newState['dataNeighborhoods'] = action.barrios.map(x => ({
           ...x,
-          completed: !x.completed
-        };
-      });
+          completed: !trueOrFalse
+        }));
+      } else {
+        newState['dataNeighborhoods'] = action.barrios.map(x => {
+          if (x.id !== action.id) {
+            return x;
+          }
+          return {
+            ...x,
+            completed: !x.completed
+          };
+        });
+        let maybe =
+          newState['dataNeighborhoods'].filter(x => !x.completed).map(r => r)
+            .length > 0;
+        if (maybe) newState['dataNeighborhoods'][0].completed = false;
+      }
       break;
     default:
       break;
@@ -164,7 +272,8 @@ function nav(state = initialNavState, action) {
 const AppReducer = combineReducers({
   nav,
   maps,
-  daysSelected
+  daysSelected,
+  activitiFilter
 });
 
 export default AppReducer;

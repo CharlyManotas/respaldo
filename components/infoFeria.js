@@ -61,7 +61,8 @@ const styles = StyleSheet.create({
 });
 
 const urlFacebook = 'https://www.facebook.com/feriasmdeo/';
-const url = 'https://play.google.com/store/apps/details?id=com.feriasmdeoapp';
+const url =
+  'https://play.google.com/store/apps/details?id=com.montevideoferias';
 const urlEmail = 'mailto:ferias.mdeo@gmail.com?subject=Contacto';
 
 const InfoFeria = ({ navigation }) => (
